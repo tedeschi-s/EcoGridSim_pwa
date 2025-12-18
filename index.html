@@ -3,108 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid Sim Pro</title>
+    <title>EcoGrid Sim - Expansion</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4caf50">
     <style>
-        :root { --wind-speed: 2s; --line-color: rgba(255, 255, 0, 0.2); }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #4caf50; }
+        :root { --wind-speed: 2s; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #4caf50; }
 
-        /* TERRENO */
         #game-viewport {
             width: 100vw; height: 100vh;
             background-color: #4caf50;
-            background-image: 
-                radial-gradient(#55ad58 15%, transparent 16%),
-                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-            background-size: 30px 30px, 100px 100px, 100px 100px;
+            background-image: radial-gradient(#55ad58 15%, transparent 16%), grid;
+            background-size: 30px 30px;
             position: relative;
-            z-index: 0;
         }
 
         .night-mode #game-viewport { background-color: #1a3a1a; filter: brightness(0.7); }
 
-        /* ASSET POSIZIONAMENTO FISSO */
-        .asset { 
-            position: absolute; 
-            z-index: 10; 
-            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.1)); 
-            pointer-events: none;
-        }
-
-        /* RETE ELETTRICA */
-        #power-grid { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; z-index: 5; 
-        }
-        .power-line { 
-            stroke: var(--line-color); stroke-width: 3; 
-            stroke-dasharray: 8; animation: flow 1s linear infinite; 
-        }
-        @keyframes flow { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
-
-        /* ANIMAZIONI */
+        /* ASSET */
+        .asset { position: absolute; z-index: 10; pointer-events: none; filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.1)); }
+        
+        /* ANIMAZIONE PALE */
         .blades { transform-origin: 32px 20px; animation: spin var(--wind-speed) linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .window { fill: #444; }
-        .night-mode .window { fill: #fff176; }
 
-        .smoke { opacity: 0; }
-        .active-thermal .smoke { animation: puff 2s infinite; opacity: 0.6; }
+        /* FUMO CENTRALE (CORRETTO) */
+        .smoke-particle { 
+            fill: #fff; opacity: 0; 
+        }
+        .active-thermal .smoke-particle { 
+            animation: puff 2s infinite; 
+        }
+        .smoke-2 { animation-delay: 0.7s !important; }
+        .smoke-3 { animation-delay: 1.4s !important; }
+
         @keyframes puff {
             0% { transform: translateY(0) scale(1); opacity: 0; }
-            100% { transform: translateY(-30px) scale(2); opacity: 0; }
+            30% { opacity: 0.7; }
+            100% { transform: translateY(-40px) scale(3); opacity: 0; }
         }
 
-        /* NUVOLE */
-        .cloud { position: absolute; fill: white; opacity: 0.5; z-index: 20; animation: drift linear infinite; pointer-events: none; }
-        @keyframes drift { from { left: -200px; } to { left: 105vw; } }
+        /* FINESTRE */
+        .window { fill: #444; transition: fill 1s; }
+        .night-mode .window { fill: #fff176; }
+
+        /* RETE ELETTRICA */
+        #power-grid { position: absolute; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+        .power-line { stroke: rgba(255,255,0,0.3); stroke-width: 2; stroke-dasharray: 5; animation: flow 1s linear infinite; }
+        @keyframes flow { from { stroke-dashoffset: 10; } to { stroke-dashoffset: 0; } }
 
         /* UI */
         .ui-bottom {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 50px;
+            background: rgba(255,255,255,0.9); padding: 15px 30px; border-radius: 50px;
             display: flex; gap: 20px; align-items: center; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        .stat { font-weight: bold; font-size: 14px; white-space: nowrap; }
+        .stat { font-weight: bold; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div id="game-viewport">
-    <svg class="cloud" style="top:5%; width:120px; animation-duration:40s;" viewBox="0 0 100 50"><ellipse cx="50" cy="25" rx="40" ry="20"/></svg>
-
     <svg id="power-grid">
-        <line id="line-wind" class="power-line" x1="20%" y1="20%" x2="50%" y2="50%" />
-        <line id="line-solar" class="power-line" x1="80%" y1="70%" x2="50%" y2="50%" />
-        <line id="line-thermal" class="power-line" x1="80%" y1="20%" x2="50%" y2="50%" />
+        <line class="power-line" x1="15%" y1="20%" x2="50%" y2="50%" />
+        <line class="power-line" x1="15%" y1="40%" x2="50%" y2="50%" />
+        <line class="power-line" x1="85%" y1="25%" x2="50%" y2="50%" />
     </svg>
 
-    <svg class="asset" style="top:15%; left:15%; width:80px;" viewBox="0 0 64 64">
+    <svg class="asset" style="top:15%; left:12%; width:70px;" viewBox="0 0 64 64">
         <path fill="#ddd" d="M30 62 L34 62 L32 20 Z" />
         <g class="blades"><path fill="#65c8d0" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g>
     </svg>
-
-    <svg id="city" class="asset" style="top:45%; left:45%; width:120px" viewBox="0 0 64 64">
-        <rect fill="#838bc5" x="10" y="30" width="20" height="32" />
-        <rect fill="#ba9bc9" x="35" y="20" width="20" height="42" />
-        <rect class="window" x="14" y="35" width="4" height="4" />
-        <rect class="window" x="43" y="25" width="4" height="4" />
+    <svg class="asset" style="top:35%; left:10%; width:70px;" viewBox="0 0 64 64">
+        <path fill="#ddd" d="M30 62 L34 62 L32 20 Z" />
+        <g class="blades" style="animation-delay: -0.5s"><path fill="#65c8d0" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g>
     </svg>
 
-    <svg id="thermal-plant" class="asset" style="top:15%; left:75%; width:100px" viewBox="0 0 64 64">
-        <circle class="smoke" fill="#eee" cx="20" cy="15" r="6" />
-        <rect fill="#555" x="10" y="40" width="40" height="22" />
-        <rect fill="#333" x="15" y="20" width="10" height="20" />
-        <rect fill="#ff5722" id="heat-glow" opacity="0.3" x="12" y="42" width="36" height="10" />
+    <svg id="thermal-plant" class="asset" style="top:20%; left:80%; width:100px" viewBox="0 0 64 64">
+        <g class="smoke-group">
+            <circle class="smoke-particle smoke-1" cx="20" cy="15" r="4" />
+            <circle class="smoke-particle smoke-2" cx="20" cy="15" r="4" />
+            <circle class="smoke-particle smoke-3" cx="20" cy="15" r="4" />
+        </g>
+        <rect fill="#444" x="10" y="40" width="40" height="22" />
+        <rect fill="#333" x="16" y="20" width="8" height="20" />
     </svg>
 
-    <svg class="asset" style="top:65%; left:75%; width:100px" viewBox="0 0 64 64">
+    <div id="city-center" style="position:absolute; top:45%; left:45%;">
+        <svg class="asset" style="top:-20px; left:-40px; width:60px" viewBox="0 0 64 64">
+            <rect fill="#838bc5" x="10" y="30" width="25" height="30" />
+            <rect class="window" x="15" y="35" width="5" height="5" />
+        </svg>
+        <svg class="asset" style="top:-30px; left:40px; width:50px" viewBox="0 0 64 64">
+            <rect fill="#ba9bc9" x="10" y="20" width="30" height="40" />
+            <rect class="window" x="20" y="30" width="6" height="6" />
+        </svg>
+        <svg class="asset" style="top:50px; left:-20px; width:70px" viewBox="0 0 64 64">
+            <rect fill="#f2a65a" x="10" y="35" width="40" height="25" />
+            <rect class="window" x="15" y="40" width="5" height="5" />
+            <rect class="window" x="30" y="40" width="5" height="5" />
+        </svg>
+        <svg class="asset" style="top:40px; left:50px; width:55px" viewBox="0 0 64 64">
+            <rect fill="#70c1b3" x="10" y="25" width="25" height="35" />
+            <rect class="window" x="15" y="35" width="5" height="10" />
+        </svg>
+    </div>
+
+    <svg class="asset" style="top:70%; left:75%; width:90px" viewBox="0 0 64 64">
         <rect fill="#333" x="30" y="45" width="4" height="15" />
-        <rect fill="#004d40" x="5" y="25" width="54" height="25" rx="2" />
-        <rect fill="#00bcd4" opacity="0.4" x="8" y="28" width="48" height="8" />
+        <rect fill="#2c3e50" x="5" y="25" width="54" height="25" rx="2" />
+        <rect fill="#3498db" opacity="0.4" x="8" y="28" width="48" height="8" />
     </svg>
 </div>
 
@@ -117,14 +125,13 @@
 
 <script>
     let time = 12;
-    const viewport = document.body;
 
     function gameLoop() {
         time = (time + 0.02) % 24;
         document.getElementById('clock-txt').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
 
         const isNight = time > 19 || time < 6;
-        viewport.classList.toggle('night-mode', isNight);
+        document.body.classList.toggle('night-mode', isNight);
 
         const windVal = parseInt(document.getElementById('wind-slider').value);
         const thermalVal = parseInt(document.getElementById('thermal-slider').value);
@@ -133,18 +140,18 @@
         document.documentElement.style.setProperty('--wind-speed', (105 - windVal) / 20 + 's');
         
         const thermalPlant = document.getElementById('thermal-plant');
-        if (thermalVal > 10) {
+        if (thermalVal > 5) {
             thermalPlant.classList.add('active-thermal');
         } else {
             thermalPlant.classList.remove('active-thermal');
         }
 
-        const demand = isNight ? 40 : 80;
+        const demand = isNight ? 50 : 90;
         const balance = (windVal + thermalVal + sunVal) - demand;
         
         const balEl = document.getElementById('balance-txt');
         balEl.innerText = balance;
-        balEl.style.color = balance < 0 ? "red" : "green";
+        balEl.style.color = balance < 0 ? "#ff4444" : "#44ff44";
 
         requestAnimationFrame(gameLoop);
     }
