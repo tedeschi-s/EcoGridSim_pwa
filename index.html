@@ -3,138 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid Sim - Living World</title>
+    <title>EcoGrid Pro - Dashboard Edition</title>
     <style>
-        :root { --wind-speed: 2s; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #4caf50; }
+        :root { --wind-speed: 2s; --cloud-opacity: 0.2; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #4caf50; }
 
         #game-viewport {
             width: 100vw; height: 100vh;
             background-color: #4caf50;
             background-image: radial-gradient(#55ad58 15%, transparent 16%);
             background-size: 30px 30px;
-            position: relative;
+            position: relative; transition: background 3s;
+        }
+        .night-mode #game-viewport { background-color: #1a3a1a; filter: brightness(0.6); }
+
+        /* DASHBOARD */
+        .dashboard {
+            position: fixed; top: 20px; right: 20px;
+            background: rgba(0, 20, 0, 0.85); color: #00ff41;
+            padding: 15px; border-radius: 10px; width: 220px;
+            z-index: 1000; border: 2px solid #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.2);
+        }
+        .dashboard h3 { margin: 0 0 10px 0; font-size: 14px; text-align: center; border-bottom: 1px solid #00ff41; padding-bottom: 5px; }
+        .data-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; font-weight: bold; }
+        .data-val { color: #fff; }
+
+        /* AMBIENTE */
+        .env { position: absolute; pointer-events: none; z-index: 1; }
+        .river { fill: #4fc3f7; opacity: 0.8; animation: flow 2s infinite alternate ease-in-out; }
+        @keyframes flow { from { opacity: 0.6; } to { opacity: 0.9; } }
+        
+        .weather-cloud { 
+            position: absolute; fill: white; opacity: var(--cloud-opacity); 
+            filter: blur(15px); transition: opacity 2s linear; z-index: 20; 
         }
 
-        .night-mode #game-viewport { background-color: #1a3a1a; filter: brightness(0.7); }
-
-        /* AMBIENTE (Sotto gli asset) */
-        .env-static { position: absolute; z-index: 1; }
-        .river { fill: #4fc3f7; animation: water-flow 3s linear infinite; }
-        @keyframes water-flow { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
-
-        /* ASSET (Sopra tutto) */
+        /* ASSET */
         .asset { position: absolute; z-index: 10; overflow: visible; filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.2)); }
-        
-        /* ANIMAZIONI */
         .blades { transform-origin: 32px 20px; animation: spin var(--wind-speed) linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* FUMO (PIÙ VISIBILE) */
-        .smoke-particle { fill: #ffffff; opacity: 0; }
-        .active-thermal .smoke-particle { animation: puff 2s infinite linear; }
-        .s2 { animation-delay: 0.6s; }
-        .s3 { animation-delay: 1.2s; }
+        .smoke { fill: #fff; opacity: 0; }
+        .active-thermal .smoke { animation: puff 2s infinite linear; }
         @keyframes puff {
             0% { transform: translateY(0) scale(1); opacity: 0; }
-            20% { opacity: 0.8; }
-            100% { transform: translateY(-50px) scale(3); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-40px) scale(3); opacity: 0; }
         }
 
-        .window { fill: #222; transition: fill 1s; }
-        .night-mode .window { fill: #ffff00; }
+        .window { fill: #333; }
+        .night-mode .window { fill: #ffff00; box-shadow: 0 0 5px gold; }
 
-        /* UI */
+        /* CONTROLLO */
         .ui-bottom {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 50px;
-            display: flex; gap: 20px; align-items: center; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            background: #fff; padding: 12px 30px; border-radius: 50px;
+            display: flex; gap: 20px; align-items: center; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
     </style>
 </head>
 <body>
 
+<div class="dashboard">
+    <h3>SYSTEM STATUS</h3>
+    <div class="data-row">EOLICO: <span id="db-wind" class="data-val">0</span> MW</div>
+    <div class="data-row">SOLARE: <span id="db-solar" class="data-val">0</span> MW</div>
+    <div class="data-row">TERMICO: <span id="db-thermal" class="data-val">0</span> MW</div>
+    <hr style="border:0; border-top:1px solid #333">
+    <div class="data-row">DOMANDA: <span id="db-demand" class="data-val">0</span> MW</div>
+    <div class="data-row">BILANCIO: <span id="db-balance" class="data-val">0</span> MW</div>
+</div>
+
 <div id="game-viewport">
-    
-    <svg class="env-static" style="top:20%; right:0; width:25%; height:120px;">
-        <rect class="river" width="100%" height="40" y="40" />
-    </svg>
+    <svg class="weather-cloud" style="top:5%; left:20%; width:400px; height:200px;"><ellipse cx="200" cy="100" rx="180" ry="80"/></svg>
 
-    <svg class="env-static" style="top:40%; left:40%; width:300px; height:300px;">
-        <rect fill="#444" x="50" y="0" width="20" height="200" /> <rect fill="#444" x="0" y="80" width="200" height="20" /> </svg>
+    <svg class="env" style="top:25%; right:0; width:30%; height:40px;"><rect class="river" width="100%" height="30" rx="10"/></svg>
+    <svg class="env" style="top:40%; left:45%; width:200px; height:200px;"><rect fill="#444" x="0" y="0" width="15" height="150" /><rect fill="#444" x="-100" y="70" width="200" height="15" /></svg>
 
-    <svg class="asset" style="top:55%; left:38%; width:25px" viewBox="0 0 20 30"><circle fill="#1b5e20" cx="10" cy="10" r="10"/><rect fill="#5d4037" x="8" y="15" width="4" height="12"/></svg>
-    <svg class="asset" style="top:42%; left:62%; width:25px" viewBox="0 0 20 30"><circle fill="#2e7d32" cx="10" cy="10" r="10"/><rect fill="#5d4037" x="8" y="15" width="4" height="12"/></svg>
-    <svg class="asset" style="top:25%; left:75%; width:25px" viewBox="0 0 20 30"><circle fill="#2e7d32" cx="10" cy="10" r="10"/><rect fill="#5d4037" x="8" y="15" width="4" height="12"/></svg>
+    <svg class="asset" style="top:55%; left:35%; width:20px" viewBox="0 0 20 30"><circle fill="#1b5e20" cx="10" cy="10" r="10"/><rect fill="#5d4037" x="8" y="15" width="4" height="10"/></svg>
 
-    <svg class="asset" style="top:15%; left:10%; width:80px;" viewBox="0 0 64 64">
-        <path fill="#eee" d="M30 62 L34 62 L32 20 Z" />
-        <g class="blades"><path fill="#fff" stroke="#ccc" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g>
-    </svg>
-    <svg class="asset" style="top:35%; left:15%; width:80px;" viewBox="0 0 64 64">
-        <path fill="#eee" d="M30 62 L34 62 L32 20 Z" />
-        <g class="blades" style="animation-delay: -0.5s"><path fill="#fff" stroke="#ccc" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g>
-    </svg>
+    <svg class="asset" style="top:15%; left:12%; width:75px;" viewBox="0 0 64 64"><path fill="#ddd" d="M30 62 L34 62 L32 20 Z" /><g class="blades"><path fill="#fff" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g></svg>
+    <svg class="asset" style="top:32%; left:10%; width:75px;" viewBox="0 0 64 64"><path fill="#ddd" d="M30 62 L34 62 L32 20 Z" /><g class="blades" style="animation-delay:-1s"><path fill="#fff" d="M32 20 L32 2 L35 2 Z M32 20 L48 30 L46 32 Z M32 20 L16 30 L18 32 Z" /></g></svg>
 
-    <svg id="thermal-plant" class="asset" style="top:15%; left:80%; width:120px" viewBox="0 0 64 64">
-        <circle class="smoke-particle s1" cx="20" cy="15" r="6" />
-        <circle class="smoke-particle s2" cx="20" cy="15" r="6" />
-        <circle class="smoke-particle s3" cx="20" cy="15" r="6" />
-        <rect fill="#333" x="10" y="40" width="45" height="20" />
+    <svg id="thermal-plant" class="asset" style="top:18%; left:80%; width:110px" viewBox="0 0 64 64">
+        <circle class="smoke" cx="20" cy="15" r="5" />
+        <rect fill="#333" x="10" y="40" width="40" height="20" />
         <rect fill="#555" x="16" y="20" width="10" height="20" />
     </svg>
 
-    <svg class="asset" style="top:45%; left:38%; width:50px" viewBox="0 0 64 64"><rect fill="#e57373" x="10" y="30" width="30" height="30" /><rect class="window" x="15" y="35" width="6" height="6" /></svg>
-    <svg class="asset" style="top:45%; left:52%; width:50px" viewBox="0 0 64 64"><rect fill="#81c784" x="10" y="30" width="30" height="30" /><rect class="window" x="20" y="40" width="6" height="6" /></svg>
-    <svg class="asset" style="top:58%; left:42%; width:50px" viewBox="0 0 64 64"><rect fill="#64b5f6" x="10" y="30" width="30" height="30" /><rect class="window" x="15" y="35" width="6" height="6" /></svg>
-    <svg class="asset" style="top:58%; left:55%; width:50px" viewBox="0 0 64 64"><rect fill="#ffb74d" x="10" y="30" width="30" height="30" /><rect class="window" x="20" y="40" width="6" height="6" /></svg>
+    <svg class="asset" style="top:44%; left:40%; width:50px" viewBox="0 0 64 64"><rect fill="#e57373" x="10" y="30" width="30" height="30" /><rect class="window" x="15" y="35" width="6" height="6" /></svg>
+    <svg class="asset" style="top:44%; left:55%; width:50px" viewBox="0 0 64 64"><rect fill="#81c784" x="10" y="30" width="30" height="30" /><rect class="window" x="20" y="35" width="6" height="6" /></svg>
+    <svg class="asset" style="top:58%; left:42%; width:50px" viewBox="0 0 64 64"><rect fill="#64b5f6" x="10" y="30" width="30" height="30" /><rect class="window" x="15" y="40" width="6" height="6" /></svg>
+    <svg class="asset" style="top:58%; left:53%; width:50px" viewBox="0 0 64 64"><rect fill="#ffb74d" x="10" y="30" width="30" height="30" /><rect class="window" x="20" y="40" width="6" height="6" /></svg>
 
-    <svg class="asset" style="top:75%; left:75%; width:90px" viewBox="0 0 64 64">
-        <rect fill="#1a237e" x="5" y="30" width="50" height="25" rx="2" />
-        <path d="M5 42 H55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-    </svg>
-    <svg class="asset" style="top:85%; left:72%; width:90px" viewBox="0 0 64 64">
-        <rect fill="#1a237e" x="5" y="30" width="50" height="25" rx="2" />
-        <path d="M5 42 H55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-    </svg>
-
+    <svg class="asset" style="top:75%; left:75%; width:90px" viewBox="0 0 64 64"><rect fill="#1a237e" x="5" y="30" width="50" height="25" rx="2" /></svg>
+    <svg class="asset" style="top:86%; left:72%; width:90px" viewBox="0 0 64 64"><rect fill="#1a237e" x="5" y="30" width="50" height="25" rx="2" /></svg>
 </div>
 
 <div class="ui-bottom">
-    <div class="stat">🕒 <span id="clock-txt">12:00</span></div>
-    <div class="stat">🌬️ <input type="range" id="wind-slider" value="50"></div>
-    <div class="stat">🔥 <input type="range" id="thermal-slider" value="0"></div>
-    <div class="stat">⚖️ <span id="balance-txt">0</span> MW</div>
+    <div style="font-size: 18px; font-weight:bold;">🕒 <span id="clock">12:00</span></div>
+    <div style="font-weight:bold;">🔥 Centrale: <input type="range" id="thermal-slider" value="0"></div>
 </div>
 
 <script>
     let time = 12;
-    function gameLoop() {
-        time = (time + 0.02) % 24;
-        document.getElementById('clock-txt').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
-        
+    let windVal = 30;
+    let cloudLevel = 0.2;
+
+    function update() {
+        // Tempo e Luce
+        time = (time + 0.01) % 24;
+        document.getElementById('clock').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
         const isNight = time > 19 || time < 6;
         document.body.classList.toggle('night-mode', isNight);
 
-        const wind = parseInt(document.getElementById('wind-slider').value);
-        const thermal = parseInt(document.getElementById('thermal-slider').value);
-        const sun = isNight ? 0 : 60;
+        // 1. VENTO RANDOM (Fluttuazione naturale)
+        windVal += (Math.random() - 0.5) * 1.5;
+        windVal = Math.max(5, Math.min(90, windVal));
+        document.documentElement.style.setProperty('--wind-speed', (100 - windVal) / 20 + 's');
 
-        document.documentElement.style.setProperty('--wind-speed', (105 - wind) / 20 + 's');
-        
+        // 2. METEO (Nuvole che coprono il sole)
+        cloudLevel = 0.1 + Math.abs(Math.sin(time / 4)) * 0.7;
+        document.documentElement.style.setProperty('--cloud-opacity', cloudLevel);
+        let solarProd = isNight ? 0 : Math.floor(80 * (1 - cloudLevel));
+
+        // 3. CENTRALE
+        const thermalProd = parseInt(document.getElementById('thermal-slider').value);
         const plant = document.getElementById('thermal-plant');
-        if (thermal > 10) plant.classList.add('active-thermal');
+        if(thermalProd > 5) plant.classList.add('active-thermal');
         else plant.classList.remove('active-thermal');
 
-        const demand = isNight ? 50 : 100;
-        const balance = (wind + thermal + sun) - demand;
-        const balEl = document.getElementById('balance-txt');
-        balEl.innerText = balance;
-        balEl.style.color = balance < 0 ? "red" : "#00ff00";
+        // 4. BILANCIO
+        const demand = isNight ? 45 : 105;
+        const totalGen = Math.floor(windVal + solarProd + thermalProd);
+        const balance = totalGen - demand;
 
-        requestAnimationFrame(gameLoop);
+        // DASHBOARD UPDATE
+        document.getElementById('db-wind').innerText = Math.floor(windVal);
+        document.getElementById('db-solar').innerText = solarProd;
+        document.getElementById('db-thermal').innerText = thermalProd;
+        document.getElementById('db-demand').innerText = demand;
+        document.getElementById('db-balance').innerText = balance;
+        
+        const balSpan = document.getElementById('db-balance');
+        balSpan.style.color = balance < 0 ? "#ff4d4d" : "#00ff41";
+
+        requestAnimationFrame(update);
     }
-    gameLoop();
+    update();
 </script>
 </body>
 </html>
