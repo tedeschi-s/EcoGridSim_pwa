@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoGrid Sim</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4caf50">
+    <style>
+        :root { --wind-speed: 2s; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* MAPPA */
+        #game-viewport {
+            width: 100vw; height: 100vh;
+            background: #4caf50; transition: background 3s ease;
+            position: relative;
+        }
+        .night-mode #game-viewport { background: #1a3a1a; filter: brightness(0.8); }
+
+        /* ASSET POSIZIONAMENTO */
+        .asset { position: absolute; transition: transform 0.3s; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.2)); }
+        
+        /* EOLICO */
+        .blades { transform-origin: 32px 20px; animation: spin var(--wind-speed) linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* CITTÀ & FINESTRE */
+        .window { fill: #555; transition: fill 1s; }
+        .night-mode .window { fill: #ffeb3b; filter: blur(0.5px); }
+
+        /* FUMO CENTRALE */
+        .smoke { opacity: 0; transition: opacity 0.5s; }
+        .active-thermal .smoke { animation: puff 2s infinite; opacity: 0.6; }
+        @keyframes puff {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-20px) scale(1.5); opacity: 0; }
+        }
+
+        /* UI CONTROLLI */
+        .ui-bottom {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.9); padding: 15px 25px; border-radius: 50px;
+            display: flex; gap: 30px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px); z-index: 100;
+        }
+        .stat { text-align: center; font-weight: bold; color: #333; }
+        input[type=range] { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="game-viewport">
+    <svg class="asset" style="top:15%; left:15%; width:80px;" viewBox="0 0 64 64">
+        <path fill="#838bc5" d="M30 62 L34 62 L33 20 L31 20 Z" />
+        <g class="blades"><path fill="#65c8d0" d="M32 20 L32 2 L35 2 L35 20 Z M32 20 L48 30 L46 32 L32 20 Z M32 20 L16 30 L18 32 L32 20 Z" /></g>
+        <circle fill="#f4ecce" cx="32" cy="20" r="2" />
+    </svg>
+
+    <svg id="city" class="asset" style="top:35%; left:40%; width:180px" viewBox="0 0 64 64">
+        <path fill="#838bc5" d="M36 52 L50 62 L14 62 L28 52 Z" />
+        <path fill="#8f6c56" d="M23 51 V11 H43 V51 Z" />
+        <rect class="window" x="27" y="15" width="4" height="4" />
+        <rect class="window" x="35" y="15" width="4" height="4" />
+        <rect class="window" x="27" y="23" width="4" height="4" />
+        <rect class="window" x="35" y="23" width="4" height="4" />
+        <rect class="window" x="27" y="31" width="4" height="4" />
+    </svg>
+
+    <svg id="thermal-plant" class="asset" style="top:25%; right:15%; width:100px" viewBox="0 0 64 64">
+        <circle class="smoke" fill="#ddd" cx="35" cy="25" r="5" />
+        <path fill="#8f6c56" d="M33 41 L34 31 L38 31 L39 41 Z" />
+        <rect fill="#ba9bc9" height="14" width="17" x="6" y="47" />
+        <rect fill="#838bc5" height="6" rx="3" width="30" x="30" y="41" />
+    </svg>
+
+    <svg class="asset" style="top:70%; left:25%; width:100px" viewBox="0 0 64 64">
+        <rect fill="#8f6c56" x="30" y="45" width="4" height="15" />
+        <polygon fill="#007AB7" points="10,42 54,42 57,18 7,18" />
+        <line x1="10" y1="30" x2="54" y2="30" stroke="#91C0F1" />
+    </svg>
+</div>
+
+<div class="ui-bottom">
+    <div class="stat">Ora: <span id="clock-display">12:00</span></div>
+    <div class="stat">Vento: <input type="range" id="wind-ctrl" value="50"></div>
+    <div class="stat">Termico: <input type="range" id="thermal-ctrl" value="0"></div>
+    <div class="stat">Bilancio: <span id="balance-display">0 MW</span></div>
+</div>
+
+<script>
+    let hour = 12;
+    const viewport = document.body;
+
+    // Gestione Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+
+    function update() {
+        // Scorrimento tempo
+        hour = (hour + 0.05) % 24;
+        const displayHour = Math.floor(hour);
+        document.getElementById('clock-display').innerText = `${displayHour.toString().padStart(2, '0')}:00`;
+
+        // Giorno/Notte
+        if (hour > 19 || hour < 6) viewport.classList.add('night-mode');
+        else viewport.classList.remove('night-mode');
+
+        // Controllo Vento
+        const windVal = document.getElementById('wind-ctrl').value;
+        const speed = (101 - windVal) / 25;
+        document.documentElement.style.setProperty('--wind-speed', speed + 's');
+
+        // Controllo Centrale Termica (Fumo)
+        const thermalVal = document.getElementById('thermal-ctrl').value;
+        const plant = document.getElementById('thermal-plant');
+        if(thermalVal > 10) plant.classList.add('active-thermal');
+        else plant.classList.remove('active-thermal');
+        
+        requestAnimationFrame(update);
+    }
+    update();
+</script>
+</body>
+</html>
