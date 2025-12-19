@@ -3,181 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid - Urban Simulator</title>
+    <title>EcoGrid City Map</title>
     <style>
         :root { --wind-speed: 2s; --window-light: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #2d3436; }
 
         #game-viewport {
             width: 100vw; height: 100vh;
-            background: #4caf50;
-            background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0);
-            background-size: 50px 50px;
-            position: relative; transition: filter 2s, background 2s;
+            background: #55ad58;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 100px 100px;
+            position: relative; transition: filter 2s;
         }
 
-        /* NOTTE */
-        .night-mode #game-viewport { background: #1b3022; filter: brightness(0.7); }
+        .night-mode #game-viewport { background: #1b3022; filter: brightness(0.6) contrast(1.1); }
         .night-mode { --window-light: #fff176; }
 
-        /* STRADE */
-        .road { position: absolute; background: #444; z-index: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .road-v { width: 40px; height: 100%; left: 50%; transform: translateX(-50%); border-left: 2px solid #555; border-right: 2px solid #555; }
-        .road-h { width: 100%; height: 40px; top: 60%; border-top: 2px solid #555; border-bottom: 2px solid #555; }
-        .marking-v { position: absolute; left: 50%; height: 100%; width: 2px; border-left: 8px dashed rgba(255,255,255,0.3); transform: translateX(-50%); }
-        .marking-h { position: absolute; top: 50%; width: 100%; height: 2px; border-top: 8px dashed rgba(255,255,255,0.3); transform: translateY(-50%); }
+        /* URBANISTICA: STRADE */
+        .road { position: absolute; background: #444; z-index: 1; display: flex; align-items: center; justify-content: center; }
+        .road-v { width: 60px; height: 100%; left: 25%; }
+        .road-h { width: 100%; height: 60px; top: 50%; }
+        .marking-v { height: 100%; width: 2px; border-left: 10px dashed rgba(255,255,255,0.2); }
+        .marking-h { width: 100%; height: 2px; border-top: 10px dashed rgba(255,255,255,0.2); }
 
-        /* SOLE */
-        #sun {
-            position: absolute; top: 10%; left: 50%; width: 80px; height: 80px; 
-            background: radial-gradient(circle, #ffeb3b, #f39c12);
-            border-radius: 50%; box-shadow: 0 0 50px rgba(255,235,59,0.5); z-index: 5;
-            transition: transform 3s ease-in-out;
+        /* DASHBOARD FLOTTANTE E TRASCINABILE */
+        #dashboard {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0,0,0,0.9); color: #00ff41; padding: 15px;
+            border-radius: 10px; width: 220px; border: 2px solid #00ff41;
+            z-index: 1000; cursor: move; user-select: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .night-mode #sun { transform: translateY(800px); }
+        .db-header { font-size: 10px; text-align: center; border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px; opacity: 0.7; }
+        .data-row { display: flex; justify-content: space-between; margin: 5px 0; font-family: monospace; font-size: 13px; }
 
         /* ASSET */
-        .asset { position: absolute; z-index: 10; filter: drop-shadow(10px 10px 5px rgba(0,0,0,0.15)); }
-
-        /* CASE ISOMETRICHE (Parallelepipedi) */
-        .house { width: 80px; height: 100px; }
-        .face { position: absolute; }
-        .front { width: 40px; height: 50px; background: #dcdde1; top: 20px; left: 0; }
-        .side { width: 30px; height: 50px; background: #b2bec3; top: 10px; left: 40px; transform: skewY(-20deg); }
-        .roof { width: 40px; height: 32px; background: #e84118; top: 0; left: 15px; transform: skewX(-45deg); }
+        .asset { position: absolute; z-index: 10; filter: drop-shadow(5px 5px 2px rgba(0,0,0,0.2)); }
         
-        /* FINESTRE */
-        .win { width: 8px; height: 10px; background: var(--window-light); position: absolute; border: 1px solid rgba(0,0,0,0.1); transition: background 1s; }
+        /* CASE ISOMETRICHE */
+        .house { width: 40px; height: 50px; transform: scale(0.8); }
+        .face { position: absolute; }
+        .front { width: 30px; height: 30px; background: #ecf0f1; top: 15px; left: 0; }
+        .side { width: 20px; height: 30px; background: #bdc3c7; top: 8px; left: 30px; transform: skewY(-20deg); }
+        .roof { width: 30px; height: 20px; background: #c0392b; top: 0; left: 10px; transform: skewX(-45deg); }
+        .win { width: 5px; height: 6px; background: var(--window-light); position: absolute; transition: 1s; border: 0.5px solid rgba(0,0,0,0.1); }
 
-        /* DASHBOARD */
-        .dashboard {
-            position: fixed; bottom: 20px; right: 20px;
-            background: rgba(0,0,0,0.85); color: #00ff41; padding: 20px;
-            border-radius: 15px; width: 220px; border: 1px solid #00ff41; z-index: 1000;
-        }
-        .data-row { display: flex; justify-content: space-between; margin: 5px 0; font-family: monospace; }
+        /* PALE EOLICHE */
+        .blades { transform-origin: center; animation: spin var(--wind-speed) linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* CONTROLLI */
         .controls {
-            position: fixed; bottom: 20px; left: 20px;
-            background: white; padding: 15px 25px; border-radius: 50px;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 10px 25px; border-radius: 50px;
             display: flex; gap: 20px; align-items: center; z-index: 1000;
         }
-
-        /* ANIMAZIONE PALE */
-        .blades { transform-origin: center; animation: spin var(--wind-speed) linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div id="game-viewport">
-    <div id="sun"></div>
-    
     <div class="road road-v"><div class="marking-v"></div></div>
-    <div class="road road-h"><div class="marking-h"></div></div>
+    <div class="road road-h" style="top:30%"><div class="marking-h"></div></div>
+    <div class="road road-h" style="top:70%"><div class="marking-h"></div></div>
 
-    <svg class="asset" style="top:15%; left:75%; width:120px" viewBox="0 0 100 80">
-        <rect x="20" y="30" width="50" height="40" fill="#333"/>
-        <rect x="55" y="10" width="10" height="40" fill="#555"/>
-        <circle id="smoke" cx="60" cy="10" r="5" fill="white" opacity="0"/>
+    <svg class="asset" style="top:5%; left:80%; width:120px" viewBox="0 0 100 80">
+        <rect x="10" y="30" width="60" height="40" fill="#444"/>
+        <rect x="20" y="10" width="15" height="30" fill="#666"/>
+        <circle id="smoke" cx="27" cy="10" r="5" fill="white" opacity="0.5"/>
     </svg>
 
-    <div class="asset house" style="top:45%; left:35%;">
-        <div class="face roof"></div>
-        <div class="face side">
-            <div class="win" style="top:10px; left:10px;"></div>
-        </div>
-        <div class="face front">
-            <div class="win" style="top:10px; left:10px;"></div>
-            <div class="win" style="top:10px; left:25px;"></div>
-        </div>
-    </div>
+    <div id="wind-farm"></div>
+    <div id="solar-farm"></div>
 
-    <div class="asset house" style="top:65%; left:55%;">
-        <div class="face roof" style="background:#2f3640"></div>
-        <div class="face side" style="background:#7f8c8d">
-            <div class="win" style="top:10px; left:10px;"></div>
-        </div>
-        <div class="face front" style="background:#95a5a6">
-            <div class="win" style="top:10px; left:10px;"></div>
-            <div class="win" style="top:25px; left:10px;"></div>
-        </div>
-    </div>
+    <div id="residential-zone"></div>
 
-    <svg class="asset" style="top:10%; left:10%; width:80px" viewBox="0 0 100 100">
-        <path d="M48 90 L52 90 L50 40 Z" fill="#eee"/>
-        <g class="blades" style="transform-box: fill-box; transform-origin: center;">
-            <path d="M50 40 L50 10 L53 10 Z" fill="white"/>
-            <path d="M50 40 L80 55 L78 58 Z" fill="white"/>
-            <path d="M50 40 L20 55 L22 58 Z" fill="white"/>
-        </g>
-    </svg>
-
-    <div class="asset" style="bottom:20%; left:20%; width:60px; height:80px; background:#2c3e50; border-radius:5px; border:2px solid #34495e">
-        <div id="batt-fill" style="position:absolute; bottom:0; width:100%; background:#00ff41; height:50%; transition: height 0.5s;"></div>
-        <div style="color:white; font-size:10px; text-align:center; margin-top:5px; position:relative;">BATT</div>
+    <div class="asset" style="bottom:10%; left:5%; width:50px; height:70px; background:#2c3e50; border-radius:5px; border:2px solid #34495e">
+        <div id="batt-fill" style="position:absolute; bottom:0; width:100%; background:#00ff41; height:50%;"></div>
     </div>
 </div>
 
-<div class="dashboard">
-    <div class="data-row"><span>GEN. RENEW:</span> <span id="db-renew">0</span> MW</div>
-    <div class="data-row"><span>GEN. FOSSIL:</span> <span id="db-thermal">0</span> MW</div>
-    <div class="data-row"><span>LOAD:</span> <span id="db-demand">0</span> MW</div>
-    <div class="data-row"><span>STORAGE:</span> <span id="db-batt">50%</span></div>
+<div id="dashboard">
+    <div class="db-header">::: TRASCINA DASHBOARD :::</div>
+    <div class="data-row"><span>EOLICO:</span> <span id="db-wind">0</span> MW</div>
+    <div class="data-row"><span>SOLARE:</span> <span id="db-solar">0</span> MW</div>
+    <div class="data-row"><span>TERMICO:</span> <span id="db-thermal">0</span> MW</div>
+    <div class="data-row"><span>DOMANDA:</span> <span id="db-demand">0</span> MW</div>
+    <div class="data-row" style="border-top:1px solid #333; margin-top:5px; padding-top:5px;">
+        <span>BATTERIA:</span> <span id="db-batt">50%</span>
+    </div>
 </div>
 
 <div class="controls">
     <div style="font-weight:bold">🕒 <span id="clock">12:00</span></div>
-    <input type="range" id="thermal-slider" min="0" max="100" value="0">
-    <button id="btn-batt" style="padding:8px 15px; border-radius:20px; border:none; cursor:pointer; background:#eee">USE BATTERY</button>
+    <input type="range" id="thermal-slider" value="0">
+    <button id="btn-batt" style="border-radius:20px; cursor:pointer;">BATTERY OFF</button>
 </div>
 
 <script>
-    let time = 12;
-    let battery = 50;
-    let useBatt = false;
+    // Generazione dinamica della città
+    const resZone = document.getElementById('residential-zone');
+    for(let i=0; i<12; i++) {
+        const h = document.createElement('div');
+        h.className = 'asset house';
+        h.style.left = (35 + (i%4)*6) + '%';
+        h.style.top = (40 + Math.floor(i/4)*12) + '%';
+        h.innerHTML = `<div class="face roof"></div><div class="face side"><div class="win" style="top:5px;left:5px"></div></div>
+                       <div class="face front"><div class="win" style="top:5px;left:5px"></div><div class="win" style="top:5px;left:18px"></div></div>`;
+        resZone.appendChild(h);
+    }
 
-    document.getElementById('btn-batt').onclick = function() {
-        useBatt = !useBatt;
-        this.style.background = useBatt ? '#00ff41' : '#eee';
-    };
+    const windFarm = document.getElementById('wind-farm');
+    for(let i=0; i<3; i++) {
+        const w = document.createElement('div');
+        w.className = 'asset';
+        w.style.left = '10%'; w.style.top = (10 + i*20) + '%';
+        w.innerHTML = `<svg width="60" height="80" viewBox="0 0 100 100">
+            <path d="M48 90 L52 90 L50 40 Z" fill="#eee"/>
+            <g class="blades"><path d="M50 40 L50 10 L53 10 Z" fill="white"/>
+            <path d="M50 40 L80 55 L78 58 Z" fill="white"/><path d="M50 40 L20 55 L22 58 Z" fill="white"/></g></svg>`;
+        windFarm.appendChild(w);
+    }
 
-    function update() {
+    const solarFarm = document.getElementById('solar-farm');
+    for(let i=0; i<4; i++) {
+        const s = document.createElement('div');
+        s.className = 'asset';
+        s.style.right = '10%'; s.style.top = (45 + i*10) + '%';
+        s.innerHTML = `<svg width="60" height="30"><rect fill="#1a237e" width="50" height="25" rx="2" skewX="-10"/></svg>`;
+        solarFarm.appendChild(s);
+    }
+
+    // Trascinamento Dashboard
+    const db = document.getElementById("dashboard");
+    let isDragging = false, offset = [0,0];
+    db.onmousedown = (e) => { isDragging = true; offset = [db.offsetLeft - e.clientX, db.offsetTop - e.clientY]; };
+    document.onmousemove = (e) => { if(isDragging) { db.style.left = (e.clientX + offset[0]) + 'px'; db.style.top = (e.clientY + offset[1]) + 'px'; } };
+    document.onmouseup = () => isDragging = false;
+
+    // Logica di Gioco
+    let time = 12, battery = 50, useBatt = false;
+    document.getElementById('btn-batt').onclick = function() { useBatt = !useBatt; this.style.background = useBatt ? '#00ff41' : '#eee'; };
+
+    function loop() {
         time = (time + 0.01) % 24;
         const isNight = time > 19 || time < 6;
         document.body.classList.toggle('night-mode', isNight);
         document.getElementById('clock').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
 
-        // Vento e Sole
-        let wind = 40 + Math.sin(time) * 20;
-        let sun = isNight ? 0 : 80 * Math.sin((time-6)*Math.PI/13);
+        let windPower = 30 + Math.random() * 20;
+        let solarPower = isNight ? 0 : 80 * Math.sin((time-6)*Math.PI/13);
         let thermal = parseInt(document.getElementById('thermal-slider').value);
-        let demand = isNight ? 40 : 120;
+        let demand = isNight ? 50 : 150;
+        let balance = (windPower + solarPower + thermal) - demand;
 
-        let totalRenew = Math.floor(wind + sun);
-        let balance = (totalRenew + thermal) - demand;
-
-        // Batteria
         if (balance > 0) battery = Math.min(100, battery + 0.05);
-        else if (useBatt && battery > 0) {
-            battery = Math.max(0, battery - 0.1);
-            balance += 30;
-        }
+        else if (useBatt && battery > 0) { battery -= 0.1; balance += 40; }
 
-        // Grafica
-        document.documentElement.style.setProperty('--wind-speed', (120-wind)/25 + 's');
+        document.documentElement.style.setProperty('--wind-speed', (120-windPower)/20 + 's');
         document.getElementById('batt-fill').style.height = battery + "%";
-
-        // Dashboard
-        document.getElementById('db-renew').innerText = totalRenew;
+        document.getElementById('db-wind').innerText = Math.floor(windPower);
+        document.getElementById('db-solar').innerText = Math.floor(solarPower);
         document.getElementById('db-thermal').innerText = thermal;
         document.getElementById('db-demand').innerText = demand;
         document.getElementById('db-batt').innerText = Math.floor(battery) + "%";
 
-        requestAnimationFrame(update);
+        requestAnimationFrame(loop);
     }
-    update();
+    loop();
 </script>
 </body>
 </html>
