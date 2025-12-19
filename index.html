@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid City - Fixed & Dynamic</title>
+    <title>EcoGrid City - Full Features</title>
     <style>
-        :root { --wind-speed: 2s; --window-light: transparent; --lamp-glow: 0; }
+        :root { --wind-speed: 2s; --window-light: transparent; --lamp-glow: 0; --sun-y: 10%; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #2d3436; }
 
         #game-viewport {
@@ -18,91 +18,81 @@
         .night-mode #game-viewport { background: #1a2a1a; filter: brightness(0.7); }
         .night-mode { --window-light: #fff176; --lamp-glow: 1; }
 
-        /* MONTAGNA */
-        .mountain {
-            position: absolute; top: 2%; left: 2%; width: 200px; height: 120px;
-            background: #7f8c8d; clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
-            z-index: 2; border-bottom: 10px solid #636e72;
+        /* SOLE */
+        #sun {
+            position: absolute; left: 50%; top: var(--sun-y);
+            width: 70px; height: 70px; background: radial-gradient(#fff700, #f39c12);
+            border-radius: 50%; box-shadow: 0 0 40px gold; z-index: 1;
+            transform: translateX(-50%); transition: top 2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* STRADE */
-        .road { position: absolute; background: #444; z-index: 1; }
+        /* STRADE E SEGNALETICA */
+        .road { position: absolute; background: #444; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .road-v { width: 40px; height: 100%; left: 40%; }
         .road-h { width: 100%; height: 40px; top: 55%; }
-        
-        /* AUTO */
-        .car {
-            position: absolute; width: 15px; height: 8px; background: #e74c3c;
-            border-radius: 2px; z-index: 5; top: 56%; left: -20px;
-        }
+        .stripe-v { width: 2px; height: 100%; border-left: 10px dashed rgba(255,255,255,0.3); }
+        .stripe-h { width: 100%; height: 2px; border-top: 10px dashed rgba(255,255,255,0.3); }
 
         /* LAMPIONI */
-        .light-pole { position: absolute; width: 3px; height: 25px; background: #2d3436; z-index: 6; }
-        .bulb { 
-            position: absolute; top: -5px; left: -3px; width: 8px; height: 8px; 
-            background: #fff176; border-radius: 50%; opacity: var(--lamp-glow);
-            box-shadow: 0 0 15px #fff176; transition: 1s;
+        .lamp { position: absolute; z-index: 6; }
+        .post { width: 4px; height: 30px; background: #2d3436; }
+        .light-beam { 
+            position: absolute; top: -5px; left: -10px; width: 24px; height: 24px; 
+            background: radial-gradient(circle, rgba(255,241,118,0.8), transparent 70%); 
+            opacity: var(--lamp-glow); transition: 1s;
+        }
+
+        /* ALBERI */
+        .tree { position: absolute; z-index: 5; }
+        .trunk { width: 4px; height: 10px; background: #5d4037; margin-left: 8px; }
+        .foliage { width: 20px; height: 20px; background: #2ecc71; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+        /* MONTAGNA */
+        .mountain {
+            position: absolute; top: 2%; left: 2%; width: 180px; height: 100px;
+            background: #7f8c8d; clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+            z-index: 3; border-bottom: 5px solid #636e72;
         }
 
         /* ASSET */
         .asset { position: absolute; z-index: 10; }
-        
-        /* CASE ISOMETRICHE */
         .house { width: 40px; height: 45px; }
-        .face { position: absolute; }
-        .front { width: 25px; height: 25px; background: #ecf0f1; top: 15px; left: 0; }
-        .side { width: 15px; height: 25px; background: #bdc3c7; top: 8px; left: 25px; transform: skewY(-20deg); }
-        .roof { width: 25px; height: 18px; background: #c0392b; top: 0; left: 8px; transform: skewX(-45deg); }
-        .win { width: 4px; height: 5px; background: var(--window-light); position: absolute; top: 5px; left: 5px; }
+        .front { width: 25px; height: 25px; background: #ecf0f1; top: 15px; left: 0; position: absolute; }
+        .side { width: 15px; height: 25px; background: #bdc3c7; top: 8px; left: 25px; transform: skewY(-20deg); position: absolute; }
+        .roof { width: 25px; height: 18px; background: #c0392b; top: 0; left: 8px; transform: skewX(-45deg); position: absolute; }
+        .win { width: 4px; height: 5px; background: var(--window-light); position: absolute; top: 5px; left: 5px; transition: 1s; }
 
         /* PALE EOLICHE */
         .blades { transform-origin: center; animation: spin var(--wind-speed) linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* FUMO */
-        .smoke { fill: white; opacity: 0; }
-        .active-thermal .smoke { animation: puff 2s infinite linear; }
-        @keyframes puff { 0% { transform: translateY(0) scale(1); opacity: 0.6; } 100% { transform: translateY(-30px) scale(2); opacity: 0; } }
-
-        /* DASHBOARD */
+        /* DASHBOARD TRASCINABILE */
         #dashboard {
             position: absolute; top: 20px; right: 20px;
             background: rgba(0,0,0,0.9); color: #00ff41; padding: 15px;
-            border-radius: 10px; width: 200px; border: 1px solid #00ff41;
-            z-index: 1000; cursor: move; font-family: monospace; font-size: 12px;
-        }
-
-        /* CONTROLLI */
-        .ui-panel {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 25px; border-radius: 50px;
-            display: flex; gap: 15px; align-items: center; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-radius: 10px; width: 180px; border: 1px solid #00ff41;
+            z-index: 1000; cursor: move; font-family: monospace; font-size: 11px;
         }
     </style>
 </head>
 <body>
 
 <div id="game-viewport">
+    <div id="sun"></div>
     <div class="mountain"></div>
-    <div class="road road-v"></div>
-    <div class="road road-h"></div>
-    <div id="car" class="car"></div>
+    
+    <div class="road road-v"><div class="stripe-v"></div></div>
+    <div class="road road-h"><div class="stripe-h"></div></div>
 
     <div id="wind-farm"></div>
     <div id="residential-zone"></div>
+    <div id="tree-zone"></div>
+    <div id="lamp-zone"></div>
     
-    <svg id="thermal-plant" class="asset" style="top:10%; left:70%; width:100px" viewBox="0 0 100 80">
-        <circle class="smoke" cx="30" cy="20" r="5"/>
+    <svg id="thermal-plant" class="asset" style="top:12%; left:75%; width:100px" viewBox="0 0 100 80">
         <rect x="20" y="40" width="50" height="30" fill="#333"/>
-        <rect x="25" y="20" width="10" height="20" fill="#555"/>
+        <rect x="55" y="10" width="10" height="40" fill="#555"/>
     </svg>
-
-    <div class="asset" style="bottom:10%; right:10%; border:1px dashed #2c3e50; padding:5px; display:grid; grid-template-columns:1fr 1fr; gap:5px;">
-        <div style="width:40px; height:25px; background:#1a237e; transform:skewX(-10deg)"></div>
-        <div style="width:40px; height:25px; background:#1a237e; transform:skewX(-10deg)"></div>
-        <div style="width:40px; height:25px; background:#1a237e; transform:skewX(-10deg)"></div>
-        <div style="width:40px; height:25px; background:#1a237e; transform:skewX(-10deg)"></div>
-    </div>
 
     <div class="asset" style="bottom:5%; left:5%; width:40px; height:60px; background:#2c3e50; border-radius:3px;">
         <div id="batt-fill" style="position:absolute; bottom:0; width:100%; background:#00ff41; height:50%;"></div>
@@ -110,79 +100,92 @@
 </div>
 
 <div id="dashboard">
-    <div style="text-align:center; font-size:9px; border-bottom:1px solid #333; margin-bottom:5px">DRAG PANEL</div>
-    <div>WIND: <span id="db-wind">0</span> MW</div>
-    <div>SUN: <span id="db-solar">0</span> MW</div>
-    <div>PLANT: <span id="db-thermal">0</span> MW</div>
-    <div>LOAD: <span id="db-load">0</span> MW</div>
+    <div style="text-align:center; font-size:9px; border-bottom:1px solid #333; margin-bottom:5px">GRID DATA (DRAG)</div>
+    <div>EOLICO: <span id="db-wind">0</span> MW</div>
+    <div>SOLARE: <span id="db-solar">0</span> MW</div>
+    <div>TERMICO: <span id="db-thermal">0</span> MW</div>
+    <div>DOMANDA: <span id="db-load">0</span> MW</div>
     <div style="border-top:1px solid #333; margin-top:5px">BATT: <span id="db-batt">50%</span></div>
 </div>
 
-<div class="ui-panel">
+<div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:white; padding:10px 30px; border-radius:50px; display:flex; gap:20px; z-index:2000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
     <div>🕒 <span id="clock">12:00</span></div>
     <input type="range" id="thermal-slider" value="0">
     <button id="batt-btn" style="cursor:pointer; border-radius:15px; border:1px solid #ccc; padding:5px 10px;">BATT OFF</button>
 </div>
 
 <script>
-    // Genera Mulini sulla Montagna
-    const winds = document.getElementById('wind-farm');
-    for(let i=0; i<3; i++) {
-        const w = document.createElement('div');
-        w.className = 'asset'; w.style.left = (5 + i*4) + '%'; w.style.top = (2 + i*4) + '%';
-        w.innerHTML = `<svg width="40" height="60" viewBox="0 0 100 100"><path d="M48 90 L52 90 L50 40 Z" fill="#ddd"/><g class="blades" style="transform-box:fill-box; transform-origin:center;"><path d="M50 40 L50 10 L54 10 Z" fill="white"/><path d="M50 40 L80 55 L78 58 Z" fill="white"/><path d="M50 40 L20 55 L22 58 Z" fill="white"/></g></svg>`;
-        winds.appendChild(w);
-    }
-
-    // Genera Case
+    // GENERAZIONE ASSET
     const res = document.getElementById('residential-zone');
-    for(let i=0; i<12; i++) {
+    for(let i=0; i<8; i++) {
         const h = document.createElement('div');
-        h.className = 'asset house'; h.style.left = (45 + (i%4)*6) + '%'; h.style.top = (35 + Math.floor(i/4)*8) + '%';
+        h.className = 'asset house'; h.style.left = (45 + (i%3)*10) + '%'; h.style.top = (35 + Math.floor(i/3)*10) + '%';
         h.innerHTML = `<div class="face roof"></div><div class="face side"><div class="win"></div></div><div class="face front"><div class="win"></div></div>`;
         res.appendChild(h);
     }
 
-    // Drag Dashboard
+    const trees = document.getElementById('tree-zone');
+    [ {t:40, l:30}, {t:65, l:35}, {t:70, l:55}, {t:30, l:60} ].forEach(p => {
+        const t = document.createElement('div'); t.className = 'tree'; t.style.top = p.t+'%'; t.style.left = p.l+'%';
+        t.innerHTML = `<div class="foliage"></div><div class="trunk"></div>`;
+        trees.appendChild(t);
+    });
+
+    const lamps = document.getElementById('lamp-zone');
+    [ {t:'50%', l:'43%'}, {t:'62%', l:'43%'}, {t:'50%', l:'37%'} ].forEach(p => {
+        const l = document.createElement('div'); l.className = 'lamp'; l.style.top = p.t; l.style.left = p.l;
+        l.innerHTML = `<div class="light-beam"></div><div class="post"></div>`;
+        lamps.appendChild(l);
+    });
+
+    const windFarm = document.getElementById('wind-farm');
+    for(let i=0; i<3; i++) {
+        const w = document.createElement('div');
+        w.className = 'asset'; w.style.left = (6 + i*4) + '%'; w.style.top = (3 + i*3) + '%';
+        w.innerHTML = `<svg width="40" height="60" viewBox="0 0 100 100"><path d="M48 90 L52 90 L50 40 Z" fill="#ddd"/><g class="blades" style="transform-box:fill-box; transform-origin:center;"><path d="M50 40 L50 10 L54 10 Z" fill="white"/><path d="M50 40 L80 55 L78 58 Z" fill="white"/><path d="M50 40 L20 55 L22 58 Z" fill="white"/></g></svg>`;
+        windFarm.appendChild(w);
+    }
+
+    // DASHBOARD DRAG
     const db = document.getElementById("dashboard");
     let isDragging = false, offset = [0,0];
     db.onmousedown = (e) => { isDragging = true; offset = [db.offsetLeft - e.clientX, db.offsetTop - e.clientY]; };
     document.onmousemove = (e) => { if(isDragging) { db.style.left = (e.clientX + offset[0]) + 'px'; db.style.top = (e.clientY + offset[1]) + 'px'; } };
     document.onmouseup = () => isDragging = false;
 
-    // Game Logic
+    // GAME LOOP
     let time = 12, battery = 50, useBatt = false;
-    document.getElementById('batt-btn').onclick = function() { useBatt = !useBatt; this.innerText = useBatt ? "BATT ON" : "BATT OFF"; this.style.background = useBatt ? "#00ff41" : "#eee"; };
+    document.getElementById('batt-btn').onclick = function() { useBatt = !useBatt; this.style.background = useBatt ? "#00ff41":"#eee"; };
 
     function loop() {
         time = (time + 0.01) % 24;
         const isNight = time > 19 || time < 6;
         document.body.classList.toggle('night-mode', isNight);
         document.getElementById('clock').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
+        document.documentElement.style.setProperty('--sun-y', isNight ? '120%' : '10%');
 
-        // Auto
-        const car = document.getElementById('car');
-        car.style.left = ((time * 80) % 120) - 10 + "%";
-
-        // Potenza
-        let wind = 30 + Math.random() * 20;
-        let sun = isNight ? 0 : 80 * Math.sin((time-6)*Math.PI/13);
+        // VENTO VARIABILE (può scendere quasi a zero)
+        let windBase = 25 + Math.sin(time) * 20;
+        let windPower = Math.max(2, windBase + (Math.random() - 0.5) * 10);
+        
+        let solarPower = isNight ? 0 : 90 * Math.sin((time-6)*Math.PI/13);
         let thermal = parseInt(document.getElementById('thermal-slider').value);
-        let demand = isNight ? 40 : 130;
-        let balance = (wind + sun + thermal) - demand;
+        let demand = isNight ? 45 : 140;
+        let balance = (windPower + solarPower + thermal) - demand;
 
-        if(balance > 0) battery = Math.min(100, battery + 0.05);
-        else if(useBatt && battery > 0) { battery -= 0.1; balance += 40; }
+        if (balance > 0) battery = Math.min(100, battery + 0.05);
+        else if (useBatt && battery > 0) { battery -= 0.1; balance += 40; }
 
-        // Update UI
-        document.getElementById('db-wind').innerText = Math.floor(wind);
-        document.getElementById('db-solar').innerText = Math.floor(sun);
+        // UPDATE UI
+        document.getElementById('db-wind').innerText = Math.floor(windPower);
+        document.getElementById('db-solar').innerText = Math.floor(solarPower);
         document.getElementById('db-thermal').innerText = thermal;
         document.getElementById('db-load').innerText = demand;
         document.getElementById('db-batt').innerText = Math.floor(battery) + "%";
         document.getElementById('batt-fill').style.height = battery + "%";
-        document.documentElement.style.setProperty('--wind-speed', (120-wind)/20 + 's');
-        document.getElementById('thermal-plant').classList.toggle('active-thermal', thermal > 5);
+        
+        // La velocità delle pale riflette il vento reale (se windPower è basso, girano lentissime)
+        document.documentElement.style.setProperty('--wind-speed', (150 - windPower*1.5) / 15 + 's');
 
         requestAnimationFrame(loop);
     }
