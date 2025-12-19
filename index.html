@@ -3,192 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid City - Full Features</title>
+    <title>EcoGrid Tycoon - Build your City</title>
     <style>
-        :root { --wind-speed: 2s; --window-light: transparent; --lamp-glow: 0; --sun-y: 10%; }
+        :root { --wind-speed: 2s; --window-light: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #2d3436; }
 
+        /* INTERFACCIA SUPERIORE */
+        #top-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+            background: #1e272e; color: white; display: flex; align-items: center;
+            justify-content: space-around; z-index: 3000; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .stat { font-family: monospace; font-size: 18px; font-weight: bold; }
+        #co2-container { width: 200px; height: 15px; background: #444; border-radius: 10px; overflow: hidden; border: 1px solid #666; }
+        #co2-fill { height: 100%; width: 0%; background: #ff7675; transition: 0.5s; }
+
+        /* STORE LATERALE */
+        #store {
+            position: absolute; left: 10px; top: 80px; width: 160px;
+            background: rgba(255,255,255,0.95); z-index: 2500; padding: 15px;
+            border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .store-item {
+            background: #f1f2f6; border: 1px solid #ccc; border-radius: 8px;
+            padding: 8px; margin-bottom: 10px; cursor: pointer; font-size: 12px;
+            transition: transform 0.2s; text-align: center;
+        }
+        .store-item:hover { transform: scale(1.05); border-color: #2ecc71; }
+
+        /* MAPPA DI GIOCO */
         #game-viewport {
-            width: 100vw; height: 100vh;
-            background: #55ad58;
-            position: relative; transition: filter 2s;
-            overflow: hidden;
+            width: 100vw; height: 100vh; background: #55ad58;
+            position: relative; overflow: hidden; z-index: 1;
         }
-
         .night-mode #game-viewport { background: #1a2a1a; filter: brightness(0.7); }
-        .night-mode { --window-light: #fff176; --lamp-glow: 1; }
 
-        /* SOLE */
-        #sun {
-            position: absolute; left: 50%; top: var(--sun-y);
-            width: 70px; height: 70px; background: radial-gradient(#fff700, #f39c12);
-            border-radius: 50%; box-shadow: 0 0 40px gold; z-index: 1;
-            transform: translateX(-50%); transition: top 2s cubic-bezier(0.4, 0, 0.2, 1);
+        /* OGGETTI PIAZZATI */
+        .placed-asset {
+            position: absolute; z-index: 100; cursor: grab;
+            transition: filter 0.3s;
         }
+        .placed-asset:active { cursor: grabbing; }
 
-        /* STRADE E SEGNALETICA */
-        .road { position: absolute; background: #444; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .road-v { width: 40px; height: 100%; left: 40%; }
-        .road-h { width: 100%; height: 40px; top: 55%; }
-        .stripe-v { width: 2px; height: 100%; border-left: 10px dashed rgba(255,255,255,0.3); }
-        .stripe-h { width: 100%; height: 2px; border-top: 10px dashed rgba(255,255,255,0.3); }
-
-        /* LAMPIONI */
-        .lamp { position: absolute; z-index: 6; }
-        .post { width: 4px; height: 30px; background: #2d3436; }
-        .light-beam { 
-            position: absolute; top: -5px; left: -10px; width: 24px; height: 24px; 
-            background: radial-gradient(circle, rgba(255,241,118,0.8), transparent 70%); 
-            opacity: var(--lamp-glow); transition: 1s;
-        }
-
-        /* ALBERI */
-        .tree { position: absolute; z-index: 5; }
-        .trunk { width: 4px; height: 10px; background: #5d4037; margin-left: 8px; }
-        .foliage { width: 20px; height: 20px; background: #2ecc71; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-
-        /* MONTAGNA */
-        .mountain {
-            position: absolute; top: 2%; left: 2%; width: 180px; height: 100px;
-            background: #7f8c8d; clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
-            z-index: 3; border-bottom: 5px solid #636e72;
-        }
-
-        /* ASSET */
-        .asset { position: absolute; z-index: 10; }
-        .house { width: 40px; height: 45px; }
-        .front { width: 25px; height: 25px; background: #ecf0f1; top: 15px; left: 0; position: absolute; }
-        .side { width: 15px; height: 25px; background: #bdc3c7; top: 8px; left: 25px; transform: skewY(-20deg); position: absolute; }
-        .roof { width: 25px; height: 18px; background: #c0392b; top: 0; left: 8px; transform: skewX(-45deg); position: absolute; }
-        .win { width: 4px; height: 5px; background: var(--window-light); position: absolute; top: 5px; left: 5px; transition: 1s; }
-
-        /* PALE EOLICHE */
+        /* STILI GRAFICI PER GLI ASSET */
         .blades { transform-origin: center; animation: spin var(--wind-speed) linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* DASHBOARD TRASCINABILE */
+        
+        /* DASHBOARD */
         #dashboard {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(0,0,0,0.9); color: #00ff41; padding: 15px;
-            border-radius: 10px; width: 180px; border: 1px solid #00ff41;
-            z-index: 1000; cursor: move; font-family: monospace; font-size: 11px;
+            position: absolute; top: 80px; right: 20px;
+            background: rgba(0,0,0,0.85); color: #00ff41; padding: 15px;
+            border-radius: 10px; width: 160px; z-index: 2000; font-family: monospace; font-size: 12px;
+        }
+
+        #game-over {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(194, 54, 22, 0.9); z-index: 9999; color: white;
+            flex-direction: column; align-items: center; justify-content: center;
         }
     </style>
 </head>
 <body>
 
-<div id="game-viewport">
-    <div id="sun"></div>
-    <div class="mountain"></div>
-    
-    <div class="road road-v"><div class="stripe-v"></div></div>
-    <div class="road road-h"><div class="stripe-h"></div></div>
-
-    <div id="wind-farm"></div>
-    <div id="residential-zone"></div>
-    <div id="tree-zone"></div>
-    <div id="lamp-zone"></div>
-    
-    <svg id="thermal-plant" class="asset" style="top:12%; left:75%; width:100px" viewBox="0 0 100 80">
-        <rect x="20" y="40" width="50" height="30" fill="#333"/>
-        <rect x="55" y="10" width="10" height="40" fill="#555"/>
-    </svg>
-
-    <div class="asset" style="bottom:5%; left:5%; width:40px; height:60px; background:#2c3e50; border-radius:3px;">
-        <div id="batt-fill" style="position:absolute; bottom:0; width:100%; background:#00ff41; height:50%;"></div>
+<div id="top-bar">
+    <div class="stat">💰 $<span id="budget">5000</span></div>
+    <div class="stat" style="display:flex; align-items:center; gap:10px;">
+        CO2: <div id="co2-container"><div id="co2-fill"></div></div>
     </div>
+    <div class="stat">🕒 <span id="clock">12:00</span></div>
 </div>
+
+<div id="store">
+    <div class="store-item" onclick="spawnAsset('house')">🏠 <b>Casa</b><br>$500 | -15MW</div>
+    <div class="store-item" onclick="spawnAsset('wind')">🌀 <b>Eolico</b><br>$1200 | +40MW</div>
+    <div class="store-item" onclick="spawnAsset('solar')">☀️ <b>Solare</b><br>$800 | +25MW</div>
+    <div class="store-item" onclick="spawnAsset('plant')">🏭 <b>Centrale</b><br>$2000 | +100MW</div>
+    <div class="store-item" onclick="spawnAsset('tree')">🌳 <b>Albero</b><br>$100 | -CO2</div>
+</div>
+
+<div id="game-viewport">
+    </div>
 
 <div id="dashboard">
-    <div style="text-align:center; font-size:9px; border-bottom:1px solid #333; margin-bottom:5px">GRID DATA (DRAG)</div>
-    <div>EOLICO: <span id="db-wind">0</span> MW</div>
-    <div>SOLARE: <span id="db-solar">0</span> MW</div>
-    <div>TERMICO: <span id="db-thermal">0</span> MW</div>
-    <div>DOMANDA: <span id="db-load">0</span> MW</div>
-    <div style="border-top:1px solid #333; margin-top:5px">BATT: <span id="db-batt">50%</span></div>
+    <div style="text-align:center; border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:5px">GRID STATUS</div>
+    <div>PROD: <span id="db-prod">0</span> MW</div>
+    <div>LOAD: <span id="db-load">0</span> MW</div>
+    <div id="db-msg" style="margin-top:10px; font-weight:bold; color:white">STABILE</div>
 </div>
 
-<div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:white; padding:10px 30px; border-radius:50px; display:flex; gap:20px; z-index:2000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-    <div>🕒 <span id="clock">12:00</span></div>
-    <input type="range" id="thermal-slider" value="0">
-    <button id="batt-btn" style="cursor:pointer; border-radius:15px; border:1px solid #ccc; padding:5px 10px;">BATT OFF</button>
+<div id="game-over">
+    <h1>CITY COLLAPSE!</h1>
+    <p>L'inquinamento ha distrutto l'ecosistema.</p>
+    <button onclick="location.reload()" style="padding:15px 30px; font-size:20px; cursor:pointer">Riprova</button>
 </div>
 
 <script>
-    // GENERAZIONE ASSET
-    const res = document.getElementById('residential-zone');
-    for(let i=0; i<8; i++) {
-        const h = document.createElement('div');
-        h.className = 'asset house'; h.style.left = (45 + (i%3)*10) + '%'; h.style.top = (35 + Math.floor(i/3)*10) + '%';
-        h.innerHTML = `<div class="face roof"></div><div class="face side"><div class="win"></div></div><div class="face front"><div class="win"></div></div>`;
-        res.appendChild(h);
+    let budget = 5000;
+    let co2Level = 0;
+    let time = 12;
+    let assets = [];
+
+    // Template HTML degli oggetti
+    const templates = {
+        house: `<div style="width:40px;height:45px;"><div style="width:25px;height:25px;background:#ecf0f1;position:absolute;top:15px;"></div><div style="width:15px;height:25px;background:#bdc3c7;position:absolute;top:8px;left:25px;transform:skewY(-20deg);"></div><div style="width:25px;height:18px;background:#c0392b;position:absolute;top:0;left:8px;transform:skewX(-45deg);"></div></div>`,
+        wind: `<svg width="50" height="70" viewBox="0 0 100 100"><path d="M48 90 L52 90 L50 40 Z" fill="#ddd"/><g class="blades" style="transform-box:fill-box;transform-origin:center;"><path d="M50 40 L50 10 L54 10 Z" fill="white"/><path d="M50 40 L80 55 L78 58 Z" fill="white"/><path d="M50 40 L20 55 L22 58 Z" fill="white"/></g></svg>`,
+        solar: `<div style="width:50px;height:30px;background:#1a237e;border:2px solid #3f51b5;transform:perspective(100px) rotateX(30deg);"></div>`,
+        plant: `<div style="width:60px;height:40px;background:#333;position:relative;"><div style="width:12px;height:30px;background:#555;position:absolute;top:-25px;right:10px;border-top:4px solid #c23616;"></div></div>`,
+        tree: `<div style="width:20px;height:20px;background:#2ecc71;border-radius:50%;"></div><div style="width:5px;height:10px;background:#5d4037;margin-left:7px;"></div>`
+    };
+
+    const stats = {
+        house: { cost: 500, prod: -15, co2: 1 },
+        wind: { cost: 1200, prod: 40, co2: 0 },
+        solar: { cost: 800, prod: 25, co2: 0 },
+        plant: { cost: 2000, prod: 100, co2: 8 },
+        tree: { cost: 100, prod: 0, co2: -4 }
+    };
+
+    function spawnAsset(type) {
+        if (budget < stats[type].cost) { alert("Senza soldi non si costruisce!"); return; }
+
+        budget -= stats[type].cost;
+        const div = document.createElement('div');
+        div.className = 'placed-asset';
+        div.innerHTML = templates[type];
+        
+        // Posizione iniziale random vicino allo store
+        const x = 200 + Math.random() * 100;
+        const y = 100 + Math.random() * 100;
+        div.style.left = x + 'px';
+        div.style.top = y + 'px';
+
+        document.getElementById('game-viewport').appendChild(div);
+        
+        const obj = { el: div, type: type, x: x, y: y };
+        assets.push(obj);
+        makeDraggable(div, obj);
     }
 
-    const trees = document.getElementById('tree-zone');
-    [ {t:40, l:30}, {t:65, l:35}, {t:70, l:55}, {t:30, l:60} ].forEach(p => {
-        const t = document.createElement('div'); t.className = 'tree'; t.style.top = p.t+'%'; t.style.left = p.l+'%';
-        t.innerHTML = `<div class="foliage"></div><div class="trunk"></div>`;
-        trees.appendChild(t);
-    });
-
-    const lamps = document.getElementById('lamp-zone');
-    [ {t:'50%', l:'43%'}, {t:'62%', l:'43%'}, {t:'50%', l:'37%'} ].forEach(p => {
-        const l = document.createElement('div'); l.className = 'lamp'; l.style.top = p.t; l.style.left = p.l;
-        l.innerHTML = `<div class="light-beam"></div><div class="post"></div>`;
-        lamps.appendChild(l);
-    });
-
-    const windFarm = document.getElementById('wind-farm');
-    for(let i=0; i<3; i++) {
-        const w = document.createElement('div');
-        w.className = 'asset'; w.style.left = (6 + i*4) + '%'; w.style.top = (3 + i*3) + '%';
-        w.innerHTML = `<svg width="40" height="60" viewBox="0 0 100 100"><path d="M48 90 L52 90 L50 40 Z" fill="#ddd"/><g class="blades" style="transform-box:fill-box; transform-origin:center;"><path d="M50 40 L50 10 L54 10 Z" fill="white"/><path d="M50 40 L80 55 L78 58 Z" fill="white"/><path d="M50 40 L20 55 L22 58 Z" fill="white"/></g></svg>`;
-        windFarm.appendChild(w);
+    function makeDraggable(el, obj) {
+        let isMoving = false;
+        el.onmousedown = (e) => { isMoving = true; };
+        document.onmousemove = (e) => {
+            if (!isMoving) return;
+            obj.x = e.clientX - 20;
+            obj.y = e.clientY - 20;
+            el.style.left = obj.x + 'px';
+            el.style.top = obj.y + 'px';
+        };
+        document.onmouseup = () => { isMoving = false; };
     }
-
-    // DASHBOARD DRAG
-    const db = document.getElementById("dashboard");
-    let isDragging = false, offset = [0,0];
-    db.onmousedown = (e) => { isDragging = true; offset = [db.offsetLeft - e.clientX, db.offsetTop - e.clientY]; };
-    document.onmousemove = (e) => { if(isDragging) { db.style.left = (e.clientX + offset[0]) + 'px'; db.style.top = (e.clientY + offset[1]) + 'px'; } };
-    document.onmouseup = () => isDragging = false;
-
-    // GAME LOOP
-    let time = 12, battery = 50, useBatt = false;
-    document.getElementById('batt-btn').onclick = function() { useBatt = !useBatt; this.style.background = useBatt ? "#00ff41":"#eee"; };
 
     function loop() {
         time = (time + 0.01) % 24;
         const isNight = time > 19 || time < 6;
         document.body.classList.toggle('night-mode', isNight);
         document.getElementById('clock').innerText = Math.floor(time).toString().padStart(2, '0') + ":00";
-        document.documentElement.style.setProperty('--sun-y', isNight ? '120%' : '10%');
 
-        // VENTO VARIABILE (può scendere quasi a zero)
-        let windBase = 25 + Math.sin(time) * 20;
-        let windPower = Math.max(2, windBase + (Math.random() - 0.5) * 10);
+        let prod = 0, load = 0, co2Delta = 0;
+
+        assets.forEach(a => {
+            const s = stats[a.type];
+            if (s.prod > 0) {
+                if (a.type === 'wind') prod += s.prod * (0.6 + Math.random() * 0.8);
+                else if (a.type === 'solar') prod += isNight ? 0 : s.prod;
+                else prod += s.prod; // Centrale
+            } else {
+                load += Math.abs(s.prod);
+            }
+            co2Delta += s.co2;
+        });
+
+        // Logica Economica
+        let balance = prod - load;
+        if (balance > 0) budget += balance * 0.02; // Guadagno vendendo energia
         
-        let solarPower = isNight ? 0 : 90 * Math.sin((time-6)*Math.PI/13);
-        let thermal = parseInt(document.getElementById('thermal-slider').value);
-        let demand = isNight ? 45 : 140;
-        let balance = (windPower + solarPower + thermal) - demand;
-
-        if (balance > 0) battery = Math.min(100, battery + 0.05);
-        else if (useBatt && battery > 0) { battery -= 0.1; balance += 40; }
-
-        // UPDATE UI
-        document.getElementById('db-wind').innerText = Math.floor(windPower);
-        document.getElementById('db-solar').innerText = Math.floor(solarPower);
-        document.getElementById('db-thermal').innerText = thermal;
-        document.getElementById('db-load').innerText = demand;
-        document.getElementById('db-batt').innerText = Math.floor(battery) + "%";
-        document.getElementById('batt-fill').style.height = battery + "%";
+        // Logica CO2
+        co2Level = Math.max(0, co2Level + (co2Delta * 0.005));
         
-        // La velocità delle pale riflette il vento reale (se windPower è basso, girano lentissime)
-        document.documentElement.style.setProperty('--wind-speed', (150 - windPower*1.5) / 15 + 's');
+        // Update UI
+        document.getElementById('budget').innerText = Math.floor(budget);
+        document.getElementById('co2-fill').style.width = co2Level + "%";
+        document.getElementById('db-prod').innerText = Math.floor(prod);
+        document.getElementById('db-load').innerText = Math.floor(load);
+        
+        const msg = document.getElementById('db-msg');
+        if (balance < -5) { msg.innerText = "BLACKOUT"; msg.style.color = "red"; }
+        else { msg.innerText = "STABILE"; msg.style.color = "#00ff41"; }
+
+        if (co2Level >= 100) document.getElementById('game-over').style.display = 'flex';
 
         requestAnimationFrame(loop);
     }
+
     loop();
 </script>
 </body>
